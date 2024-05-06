@@ -25,15 +25,13 @@ class Game:
 
         self.mouse_pressed = [False] * 5
         self.count = 0
+        self.old_mouse_pos = pg.Vector2(0, 0)
 
 
     def events(self):
         
-        #pg.event.get()
         self.mouse = [False] * 5
-        self.mouse_pos = pg.mouse.get_pos()
-        self.keys = pg.key.get_pressed()
-
+        
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 self.running = False
@@ -47,6 +45,14 @@ class Game:
             if event.type == pg.MOUSEBUTTONUP:
                 if event.button == pg.BUTTON_LEFT:
                     self.mouse_pressed[0] = False
+
+
+        self.mouse_pos = pg.Vector2(pg.mouse.get_pos())
+        self.mouse_vel = pg.Vector2(self.mouse_pos - self.old_mouse_pos)
+        self.keys = pg.key.get_pressed()
+
+        self.old_mouse_pos = self.mouse_pos.copy()
+
 
 
     def update(self):
