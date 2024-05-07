@@ -1,5 +1,6 @@
 
 import math
+from re import T
 import pygame as pg
 from config import *
 
@@ -23,7 +24,11 @@ class Player:
         self.rect = self.surf.get_rect(center = self.pos)
 
     def update(self):
-        self.starting_hand_pos = self.hand_pos.copy()
+        
+        # Gravity
+        self.vel *= 0.995
+        
+        self.arm_length = (self.pos - self.hand_pos).length()
         # Hand movement
         if self.app.mouse[0]:
             self.hand_pos = self.pos.copy()
@@ -36,15 +41,16 @@ class Player:
             
         if self.hand_state == 'thrown':
             
+            self.vel += pg.Vector2(0, GRAVITY) * self.app.dt * 2.5
             self.hand_vel = self.calc_vel_vector(self.hand_pos, self.hand_target)
-
+            if self.is_hand_attached(): # put these other conditions in the function
+                    self.hand_state = 'attached'
+                    self.player_target = self.pos.copy()
+                 
             if self.hand_pos.distance_to(self.hand_target) <= self.hand_vel.length():
                 self.hand_pos = self.hand_target.copy()
                 
-                if self.is_hand_attached() and self.hand_pos != self.pos: # put these other conditions in the function
-                    self.hand_state = 'attached'
-                    self.player_target = self.pos.copy()
-                    
+                   
                 if self.hand_pos == self.pos:
                     self.hand_state = 'ready'
 
@@ -63,17 +69,24 @@ class Player:
            
             self.hand_vel = self.calc_vel_vector(self.pos, self.player_target)
             self.pos += self.hand_vel
-            self.vel *= 0.9
+
+            speed_mult = self.arm_length / 1000 if self.arm_length <= 1000 else 1
+            speed_mult /= 10 # need to normalize this to the scree size
+            self.vel *= 0.91 + speed_mult # changes how the arm reacts depending on the lenth
+            if self.vel.length() < 1.0:
+                self.vel = pg.Vector2(0, 0)
             self.pos += self.vel
-            print(self.vel, self.hand_vel)
+
             if self.pos.distance_to(self.player_target) <= self.hand_vel.length():
                 self.pos = self.player_target.copy()
 
             if not self.app.mouse_pressed[0]:
                 self.hand_state = 'thrown'
-                self.vel = self.hand_vel.copy()
+                self.vel = self.hand_vel.copy() + self.vel
 
         elif self.hand_state == 'ready':
+            
+            self.vel += pg.Vector2(0, GRAVITY) * self.app.dt * 2.5
             self.pos += self.vel
       
 
@@ -84,7 +97,15 @@ class Player:
         self.rect.center = self.pos
 
     def is_hand_attached(self):
+        if self.hand_pos.distance_to(self.hand_target) >= 75: #pixel away to attached
+            return False
+        
+        if self.hand_pos.distance_to(self.pos) <= 75:
+            return False
 
+        if False: # the collision check not here yet
+            return False
+    
         return True
 
     def calc_vel_vector(self, origin, desination):
@@ -101,7 +122,7 @@ class Player:
                 distance_to_target /= HAND_DISTANCE_DROPOFF
             
             vel = displacement_to_target.normalize()
-            vel *= HAND_SPEED * (math.cos((1 - distance_to_target) * 1.5)) # add delta time
+            vel *= HAND_SPEED * (math.cos((1 - distance_to_target) * 1.5)) * (1-math.pow((1-distance_to_target)/2, 3))# add delta time
 
         return vel
 
@@ -120,10 +141,7 @@ class Player:
             
             acc = displacement_to_target.normalize()
             acc *= -(HAND_SPEED * 1.4) * (math.sin((1 - distance_to_target) * 1.5)) # add delta time
-        print(acc)
         return acc
-
-
 
     def render(self):
         # Here so rendering is fixed find better method

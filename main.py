@@ -10,7 +10,7 @@ class Game:
     def __init__(self) -> None:
         # Initialize pygame
         pg.init()
-        self.clock = pg.Clock()
+        self.clock = pg.time.Clock()
         
         self.screen = pg.display.set_mode(WINDOW_SIZE)
         self.running = True
