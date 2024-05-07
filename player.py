@@ -36,14 +36,13 @@ class Player:
             
         if self.hand_state == 'thrown':
             
-            self.hand_vel = self.calc_movement_vector(self.hand_pos, self.hand_target)
+            self.hand_vel = self.calc_vel_vector(self.hand_pos, self.hand_target)
 
             if self.hand_pos.distance_to(self.hand_target) <= self.hand_vel.length():
                 self.hand_pos = self.hand_target.copy()
                 
                 if self.is_hand_attached() and self.hand_pos != self.pos: # put these other conditions in the function
                     self.hand_state = 'attached'
-                    self.vel = pg.Vector2(0, 0)
                     self.player_target = self.pos.copy()
                     
                 if self.hand_pos == self.pos:
@@ -51,36 +50,44 @@ class Player:
 
             else:
                 self.hand_pos += self.hand_vel
+                self.hand_pos += self.vel
+
+            self.pos += self.vel
 
         # Gravity
-        self.gravity = pg.Vector2(0, 0)
+        #self.gravity = pg.Vector2(0, 0)
         # Player movement
-        if self.hand_state == 'attached':
+        elif self.hand_state == 'attached':
+
             self.player_target -= self.app.mouse_vel  
-            self.hand_vel = self.calc_movement_vector(self.pos, self.player_target)
+           
+            self.hand_vel = self.calc_vel_vector(self.pos, self.player_target)
             self.pos += self.hand_vel
-            
+            self.vel *= 0.9
+            self.pos += self.vel
+            print(self.vel, self.hand_vel)
             if self.pos.distance_to(self.player_target) <= self.hand_vel.length():
                 self.pos = self.player_target.copy()
 
             if not self.app.mouse_pressed[0]:
                 self.hand_state = 'thrown'
-                self.vel = self.hand_vel
+                self.vel = self.hand_vel.copy()
+
+        elif self.hand_state == 'ready':
+            self.pos += self.vel
       
 
-        self.vel += self.gravity * self.app.dt
+        #self.vel += self.gravity * self.app.dt
         #self.total_force = self.gravity + self.spring_force
         #self.vel += self.total_force * self.app.dt/ MASS
         # Add velocity
-        self.pos += self.vel
-        self.hand_pos += self.vel
         self.rect.center = self.pos
 
     def is_hand_attached(self):
 
         return True
 
-    def calc_movement_vector(self, origin, desination):
+    def calc_vel_vector(self, origin, desination):
        
         vel = pg.Vector2(0, 0)
 
@@ -94,9 +101,29 @@ class Player:
                 distance_to_target /= HAND_DISTANCE_DROPOFF
             
             vel = displacement_to_target.normalize()
-            vel *= HAND_SPEED * (math.cos((1 - distance_to_target) * 1.3)) # add delta time
+            vel *= HAND_SPEED * (math.cos((1 - distance_to_target) * 1.5)) # add delta time
 
         return vel
+
+    def calc_acc_vector(self, origin, desination):
+        
+        acc = pg.Vector2(0, 0)
+
+        displacement_to_target = (desination - origin)
+        distance_to_target = displacement_to_target.length()
+            
+        if distance_to_target != 0:
+            if distance_to_target >= HAND_DISTANCE_DROPOFF:
+                distance_to_target = 1
+            else:
+                distance_to_target /= HAND_DISTANCE_DROPOFF
+            
+            acc = displacement_to_target.normalize()
+            acc *= -(HAND_SPEED * 1.4) * (math.sin((1 - distance_to_target) * 1.5)) # add delta time
+        print(acc)
+        return acc
+
+
 
     def render(self):
         # Here so rendering is fixed find better method
@@ -129,7 +156,7 @@ class Player:
 # which means the other vels and stuff need to be turned into a force
 # that should give a good movement system
 
-
+# hand should be attached when is near branch and is sort of near mouse cursor
 
 
 
